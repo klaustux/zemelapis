@@ -4,9 +4,13 @@
   <title>Google Map with CSV Markers</title>
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAddDhOf_WnkBURDV-InfF-_19FaNZNhmc"></script>
   <script>
-    let map;
+    // Pre-stored hash of the password 'portalai1'
+    const storedPasswordHash = 'efed16cc1c56f9533d25600f9846a179263db5f7b8b3ffb60ad2daef44d4dbfc';
 
     // Initialize the Google Map
+    let map;
+
+    // Function to initialize the map
     function initMap() {
       map = new google.maps.Map(document.getElementById("map"), {
         center: { lat: 54.9, lng: 24 }, // Center on lat: 54.9, lng: 24
@@ -19,7 +23,6 @@
 
     // Function to load markers from CSV input
     function loadMarkersFromCSV() {
-      // Updated CSV data with caption, lat, and lon
       const csvInput = `
 koldunas,54.893197,23.9970201
 nepawytas,54.900619,23.893634
@@ -37,25 +40,19 @@ statybininkas,54.866659,23.943685
       `;
 
       try {
-        // Split the input into lines
         const lines = csvInput.trim().split("\n");
-
-        // Parse each line and create markers
         lines.forEach(line => {
           const [caption, lat, lon] = line.split(",");
 
-          // Validate and parse the data
           if (caption && !isNaN(lat) && !isNaN(lon)) {
             const position = { lat: parseFloat(lat), lng: parseFloat(lon) };
 
-            // Create marker
             const marker = new google.maps.Marker({
               position,
               map,
               title: caption, // Marker tooltip
             });
 
-            // Create a custom label to display the caption next to the marker
             const label = new CustomLabel(marker, caption);
             label.setMap(map);
           }
@@ -77,7 +74,6 @@ statybininkas,54.866659,23.943685
       }
 
       onAdd() {
-        // Create the div element for the label
         const div = document.createElement("div");
         div.style.position = "absolute";
         div.style.backgroundColor = "white";
@@ -94,7 +90,6 @@ statybininkas,54.866659,23.943685
       }
 
       draw() {
-        // Position the label based on the marker's position
         const position = this.getProjection().fromLatLngToDivPixel(this.marker.getPosition());
         const div = this.div;
 
@@ -111,9 +106,31 @@ statybininkas,54.866659,23.943685
       }
     }
 
+    // Function to hash a password with SHA-256
+    async function hashPassword(password) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(password);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
+      return hashHex;
+    }
+
+    // Ask for password and verify it
+    (async function() {
+      const enteredPassword = prompt("Enter password to view this page:");
+      const enteredPasswordHash = await hashPassword(enteredPassword);
+
+      if (enteredPasswordHash !== storedPasswordHash) {
+        document.body.innerHTML = '<h1>Access Denied</h1>';
+      } else {
+        // Proceed with loading the map
+        initMap();
+      }
+    })();
   </script>
 </head>
-<body onload="initMap()">
+<body>
   <h1>Google Map with CSV Markers</h1>
 
   <div id="map" style="height: 500px; width: 100%; margin-top: 20px;"></div>
