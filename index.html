@@ -1,39 +1,121 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Google Map with Markers from Google Sheet</title>
+  <title>Google Map with CSV Markers</title>
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAddDhOf_WnkBURDV-InfF-_19FaNZNhmc"></script>
   <script>
-    const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSdPBmdq212fhuLgxjwIV0vkOTyYN9Oo-hqTiDz8bbslUh4xAPVStRke9WZjuZ44aeQd39PFVIl3dfF/pubhtml";
+    let map;
 
+    // Initialize the Google Map
     function initMap() {
-      const map = new google.maps.Map(document.getElementById("map"), {
-        center: { lat: 37.7749, lng: -122.4194 }, // Default center
-        zoom: 5,
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 54.9, lng: 24 }, // Center on lat: 54.9, lng: 24
+        zoom: 12, // Default zoom level
       });
 
-      fetch(SHEET_URL)
-        .then(response => response.text())
-        .then(csvText => {
-          const rows = csvText.split("\n").slice(1); // Skip the header row
-          rows.forEach(row => {
-            const [caption, lat, lng] = row.split(",");
-            if (caption && lat && lng) {
-              const marker = new google.maps.Marker({
-                position: { lat: parseFloat(lat), lng: parseFloat(lng) },
-                map,
-                title: caption,
-              });
-            }
-          });
-        })
-        .catch(error => console.error("Error loading sheet data:", error));
+      // Load markers automatically
+      loadMarkersFromCSV();
     }
+
+    // Function to load markers from CSV input
+    function loadMarkersFromCSV() {
+      // Updated CSV data with caption, lat, and lon
+      const csvInput = `
+koldunas,54.893197,23.9970201
+nepawytas,54.900619,23.893634
+eimantas,54.893909,23.93126
+knitsfire,54.929617,23.943835
+dwarfas,54.905952,23.922887
+zmogas,54.889045,23.926626
+veidalol,54.901249,23.929018
+cookiez,54.901582,23.928149
+davolna,54.858178,23.911006
+geokatinas,54.925060,23.975543
+tomuko,54.928966,23.996491
+andriust,54.895326,23.954344
+statybininkas,54.866659,23.943685
+      `;
+
+      try {
+        // Split the input into lines
+        const lines = csvInput.trim().split("\n");
+
+        // Parse each line and create markers
+        lines.forEach(line => {
+          const [caption, lat, lon] = line.split(",");
+
+          // Validate and parse the data
+          if (caption && !isNaN(lat) && !isNaN(lon)) {
+            const position = { lat: parseFloat(lat), lng: parseFloat(lon) };
+
+            // Create marker
+            const marker = new google.maps.Marker({
+              position,
+              map,
+              title: caption, // Marker tooltip
+            });
+
+            // Create a custom label to display the caption next to the marker
+            const label = new CustomLabel(marker, caption);
+            label.setMap(map);
+          }
+        });
+
+        console.log("Markers loaded successfully!");
+      } catch (error) {
+        console.error("CSV Parsing Error:", error);
+      }
+    }
+
+    // Custom label to display text next to the marker
+    class CustomLabel extends google.maps.OverlayView {
+      constructor(marker, text) {
+        super();
+        this.marker = marker;
+        this.text = text;
+        this.div = null;
+      }
+
+      onAdd() {
+        // Create the div element for the label
+        const div = document.createElement("div");
+        div.style.position = "absolute";
+        div.style.backgroundColor = "white";
+        div.style.padding = "2px 8px";
+        div.style.borderRadius = "3px";
+        div.style.fontSize = "14px";
+        div.style.color = "black";
+        div.style.fontWeight = "bold";
+        div.innerText = this.text;
+
+        this.div = div;
+        const panes = this.getPanes();
+        panes.overlayLayer.appendChild(div);
+      }
+
+      draw() {
+        // Position the label based on the marker's position
+        const position = this.getProjection().fromLatLngToDivPixel(this.marker.getPosition());
+        const div = this.div;
+
+        if (div) {
+          div.style.left = position.x + "px";
+          div.style.top = position.y - 25 + "px"; // Adjust the label's position
+        }
+      }
+
+      onRemove() {
+        if (this.div) {
+          this.div.parentNode.removeChild(this.div);
+        }
+      }
+    }
+
   </script>
 </head>
 <body onload="initMap()">
-  <h1>Google Map with Markers</h1>
-  <div id="map" style="height: 500px; width: 100%;"></div>
+  <h1>Google Map with CSV Markers</h1>
+
+  <div id="map" style="height: 500px; width: 100%; margin-top: 20px;"></div>
 </body>
 </html>
-
